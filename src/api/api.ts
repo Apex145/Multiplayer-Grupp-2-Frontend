@@ -25,7 +25,7 @@ export interface Player {
 export async function login(playerName: string): Promise<Player> {
     const response = await fetch('http://localhost:8080/api/auth/player/login', {
         method: 'POST',
-        body: JSON.stringify({ playerName: playerName })
+        body: playerName
     })
     if (!response.ok) {
         throw new Error(`login failed: ${response.status}`)
