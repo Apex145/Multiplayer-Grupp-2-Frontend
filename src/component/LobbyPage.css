@@ -1,0 +1,26 @@
+body {
+    background-image: url(pokemonbackground.jpg)
+}
+
+#playerLobbyPage {
+    display: flex;
+    flex-direction: row; 
+    margin: 0 auto;
+    width: 80%;
+    border: 2px solid green;
+
+}
+
+#playerLobbyPage div {
+    width: 40%;
+}
+
+p {
+    font-size: 20px;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    background-color: #17bb11;
+    padding: 20px;
+    
+}
