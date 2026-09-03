@@ -1,7 +1,7 @@
 import { useState, type SubmitEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { login } from "../../api/api"
-import { setPlayerName } from "./session"
+import { setGamesWon, setPlayerName } from "./session"
 
 
 export function LoginPage() {
@@ -28,7 +28,11 @@ const playerName = String(formData.get('playerName') || '' ) */
             const player = await login(playerName);
             console.log("Login successful:", player);
 
+            
+
             setPlayerName(player.playerName)
+            setGamesWon(player.gamesWon.toString())
+            console.log(player.gamesWon)
             /* sessionStorage.setItem(
                 "player",
                 JSON.stringify(player)
@@ -39,13 +43,12 @@ const playerName = String(formData.get('playerName') || '' ) */
             console.error("Login failed:", error);
         }
                 
-        throw new Error("Function not implemented.")
     }
 
     return (
         < div >
         <form onSubmit={handleSubmit}>
-            
+            <h1>Login:</h1>
             <input name="playerName"
                    placeholder="player name" 
                    required />
