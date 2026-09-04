@@ -1,20 +1,5 @@
-/*import axios from "axios"
+import { stompClient } from "../component/auth/WebsocketClient"
 
-export interface Player {
-    PlayerName: String
-}
-export const loginPlayer = async (playerName: string): Promise <Player> => {
-    const response = await axios.post<Player>(
-    `${API_URL}/login`
-    {
-             params: {
-                 playerName: playerName,
-             },
-        }
-    );
-    retur response.data;
-}   
-*/
 
 export interface Player {
     id: string
@@ -30,5 +15,11 @@ export async function login(playerName: string): Promise<Player> {
     if (!response.ok) {
         throw new Error(`login failed: ${response.status}`)
     }
-    return  response.json()
+    stompClient.publish({
+        destination: '/app/game/players',
+        body: playerName
+    })
+
+    return response.json()
 }
+

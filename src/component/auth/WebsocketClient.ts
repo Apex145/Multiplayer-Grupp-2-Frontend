@@ -1,0 +1,14 @@
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+
+export const stompClient = new Client({
+    webSocketFactory: () => new SockJS("http://localhost:8080/websocket"),
+    onConnect: () => {
+        stompClient.subscribe('/pokemon/players', (msg) => {
+            console.log(msg);
+
+        })
+    }
+});
+
+stompClient.activate();
