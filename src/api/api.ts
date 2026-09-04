@@ -12,14 +12,14 @@ export async function login(playerName: string): Promise<Player> {
         method: 'POST',
         body: playerName
     })
-    stompClient.publish({
-        destination: '/app/game/players',
-        body: JSON.stringify(playerName)
-    })
-
     if (!response.ok) {
         throw new Error(`login failed: ${response.status}`)
     }
+    stompClient.publish({
+        destination: '/app/game/players',
+        body: playerName
+    })
+
     return response.json()
 }
 
