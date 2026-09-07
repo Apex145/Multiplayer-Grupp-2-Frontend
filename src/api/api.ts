@@ -13,7 +13,8 @@ export async function login(playerName: string): Promise<Player> {
         body: playerName
     })
     if (!response.ok) {
-        throw new Error(`login failed: ${response.status}`)
+        const errorData = await response.json()
+        throw new Error(errorData.message)
     }
     stompClient.publish({
         destination: '/app/game/players',
