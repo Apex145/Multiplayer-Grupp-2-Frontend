@@ -42,6 +42,11 @@ body>#root>p {
     text-align: center;
 }
 
+/*Ul Specific styling*/
+#playerList {
+    list-style-type: none;
+}
+
 /* Button container */
 #playerLobbyPage>div:last-child {
     display: flex;
