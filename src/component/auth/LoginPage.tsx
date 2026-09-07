@@ -39,8 +39,12 @@ export function LoginPage() {
             ); */
 
             navigate("/LobbyPage");
-        } catch (error) {
-            console.error("Login failed:", error);
+        } catch (err) {
+            if (err instanceof Error) {
+                setError(err.message);
+            }
+            console.error("Login failed:", err);
+            alert((err as Error).message);
         }
 
     }

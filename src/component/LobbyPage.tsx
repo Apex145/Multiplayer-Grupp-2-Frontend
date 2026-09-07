@@ -11,7 +11,6 @@ export const LobbyPage = () => {
         { name: getPlayerName(), gamesWon: getGamesWon() },
         { name: getPlayerName(), gamesWon: getGamesWon() },
         { name: getPlayerName(), gamesWon: getGamesWon() },
-        { name: getPlayerName(), gamesWon: getGamesWon() },
     ];
 
     return (
