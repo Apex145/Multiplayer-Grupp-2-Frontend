@@ -24,3 +24,8 @@ export async function login(playerName: string): Promise<Player> {
     return response.json()
 }
 
+export function showLeaderBoard() {
+    stompClient.publish({
+        destination: "/app/game/leaderboard",
+    })
+}
