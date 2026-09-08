@@ -5,6 +5,11 @@ export const stompClient = new Client({
     webSocketFactory: () => new SockJS("http://localhost:8080/websocket"),
 
 });
+
+export const connected = new Promise<void>((resolve) => {
+    stompClient.onConnect = () => resolve()
+})
+
 stompClient.activate();
 
 

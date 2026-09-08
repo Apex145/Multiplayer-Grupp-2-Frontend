@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { clearPlayerName, getPlayerName, getGamesWon } from "./auth/session";
 import "./LobbyPage.css";
-import type { LeaderBoardItem } from "../Interface/Interface";
-import { stompClient } from "./auth/WebsocketClient";
-import { showLeaderBoard } from "../api/api";
+import type { LeaderBoardItem, Player } from "../Interface/Interface";
+import { connected, stompClient } from "./auth/WebsocketClient";
+import { showAllPlayers, showLeaderBoard } from "../api/api";
 import type { StompSubscription } from "@stomp/stompjs";
 
 export const LobbyPage = () => {
@@ -12,25 +12,34 @@ export const LobbyPage = () => {
     }
 
     const [leaderboard, setLeaderBoard] = useState<LeaderBoardItem[]>([]);
+    const [playersInLobby, setPlayersInLobby] = useState<string[]>([]);
 
     useEffect(() => {
-        let subscription: StompSubscription | undefined
+        let leaderboardSubscription: StompSubscription | undefined
+        let playerSubscription: StompSubscription | undefined
 
-        const setupSubscription = () => {
-            subscription = stompClient.subscribe('/pokemon/leaderboard', (msg) => {
+        connected.then(() => {
+
+            playerSubscription = stompClient.subscribe('/pokemon/players', (msg) => {
+                console.log("Kalle", JSON.parse(msg.body));
+                console.log("asdasdswd")
+                setPlayersInLobby(JSON.parse(msg.body))
+            })
+            showAllPlayers();
+
+            leaderboardSubscription = stompClient.subscribe('/pokemon/leaderboard', (msg) => {
                 console.log(msg.body)
                 setLeaderBoard(JSON.parse(msg.body));
             });
             showLeaderBoard();
-        };
 
-        if (stompClient.connected) {
-            setupSubscription()
-        } else {
-            stompClient.onConnect = setupSubscription
+        })
+
+
+        return () => {
+            playerSubscription?.unsubscribe()
+            leaderboardSubscription?.unsubscribe()
         }
-
-        return () => subscription?.unsubscribe()
     }, []);
 
 
@@ -41,9 +50,17 @@ export const LobbyPage = () => {
 
             <div id="playerLobbyPage">
                 <div>
-                    Player: {getPlayerName()} | Games won: {getGamesWon()}
+                    <h2>🕹️ Players in lobby:</h2>
+                    <ul id="playerList">{
+                        playersInLobby.map((player) => (
+                            <li key={player}>
+                                {player}
+                                <hr />
+                            </li>
+                        ))
+                    }
+                    </ul>
                 </div>
-
                 <div>
                     <form onSubmit={handleSubmit}>
                         <button type="submit">Leave lobby!</button>
@@ -55,7 +72,7 @@ export const LobbyPage = () => {
                     <h2>🏆 Top 4 Global Players</h2>
                     <ol>
                         {leaderboard.length === 0 ? (
-                            <li>Inga spelare hittades</li>
+                            <li>No players found</li>
                         ) : (
                             leaderboard.map((player) => (
                                 <li key={player.playerId}>
@@ -65,7 +82,7 @@ export const LobbyPage = () => {
                         )}
                     </ol>
                 </aside>
-            </div>
+            </div >
         </>
     );
 };
