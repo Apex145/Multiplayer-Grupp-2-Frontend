@@ -5,14 +5,19 @@ import type { LeaderBoardItem, Player } from "../Interface/Interface";
 import { connected, stompClient } from "./auth/WebsocketClient";
 import { showAllPlayers, showLeaderBoard } from "../api/api";
 import type { StompSubscription } from "@stomp/stompjs";
+import { useNavigate } from "react-router-dom";
 
 export const LobbyPage = () => {
+
     async function handleSubmit() {
         clearPlayerName();
     }
+    const navigate = useNavigate()
+
 
     const [leaderboard, setLeaderBoard] = useState<LeaderBoardItem[]>([]);
     const [playersInLobby, setPlayersInLobby] = useState<string[]>([]);
+
 
     useEffect(() => {
         let leaderboardSubscription: StompSubscription | undefined
@@ -65,6 +70,10 @@ export const LobbyPage = () => {
                     <form onSubmit={handleSubmit}>
                         <button type="submit">Leave lobby!</button>
                     </form>
+
+                    <button onClick={() => navigate("/pokemon/game")}>Start Game</button>
+
+
                 </div>
 
                 {/* Leaderboard */}
