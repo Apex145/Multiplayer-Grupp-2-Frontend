@@ -33,10 +33,6 @@ export function LoginPage() {
             setPlayerName(player.playerName)
             setGamesWon(player.gamesWon.toString())
             console.log(player.gamesWon)
-            /* sessionStorage.setItem(
-                "player",
-                JSON.stringify(player)
-            ); */
 
             navigate("/LobbyPage");
         } catch (err) {

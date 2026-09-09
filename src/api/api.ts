@@ -20,6 +20,13 @@ export async function login(playerName: string): Promise<Player> {
     return response.json()
 }
 
+export function leaveLobby() {
+    if (!stompClient.connected) return
+    stompClient.publish({
+        destination: '/app/game/leave'
+    })
+}
+
 export function showAllPlayers() {
     stompClient.publish({
         destination: '/app/game/players'
@@ -35,5 +42,14 @@ export function showLeaderBoard() {
 export function startGame() {
     stompClient.publish({
         destination: "/app/game/start"
+    })
+}
+
+// Todo - remove magic strings here and in backend - replace with enums
+export function sendMove(direction: string) {
+    if (!stompClient.connected) return
+    stompClient.publish({
+        destination: "/app/game/move",
+        body: direction
     })
 }
