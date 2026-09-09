@@ -8,23 +8,31 @@ const WALL_THICKNESS = 20;
 const LEFT_WALL = 35;
 const RIGHT_WALL = 950;
 
-const PLAYER_W = 60;
-const PLAYER_H = 80;
-const PLAYER_SPEED = 20;
+const PLAYER_W = 150;
+const PLAYER_H = 180;
+const PLAYER_SPEED = 40;
 
-// --- Härledda gränser. Rör inte, de följer med när du ändrar ovan. ---
+/* ===================== */
+/* Jädrar */
+/* ===================== */
+
 const MIN_X = LEFT_WALL + WALL_THICKNESS;
 const MAX_X = RIGHT_WALL - PLAYER_W;
 const GROUND_Y = CANVAS_H - PLAYER_H;
 
+const pika = new Image()
+pika.src = 'src/assets/pikachu.png'
+
 export function GamePage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isFacingRight, setIsFacingRight] = useState(false)
+
 
     const [positionX, setPositionX] = useState(() =>
         Math.min(MAX_X, Math.max(MIN_X, CANVAS_W / 2 - PLAYER_W / 2))
     );
 
-    // Rita spelet
+    // Rita spelet 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -32,20 +40,39 @@ export function GamePage() {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        // Bakgrund (måste ritas först, annars målas gubben över)
-        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-        ctx.fillStyle = "gray";
-        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        const draw = () => {
+            // Bakgrund
+            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+            ctx.fillStyle = "gray";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-        // Väggar
-        ctx.fillStyle = "black";
-        ctx.fillRect(LEFT_WALL, 0, WALL_THICKNESS, CANVAS_H);
-        ctx.fillRect(RIGHT_WALL, 0, WALL_THICKNESS, CANVAS_H);
+            // Väggar
+            ctx.fillStyle = "black";
+            ctx.fillRect(LEFT_WALL, 0, WALL_THICKNESS, CANVAS_H);
+            ctx.fillRect(RIGHT_WALL, 0, WALL_THICKNESS, CANVAS_H);
 
-        // Gubben
-        ctx.fillStyle = "white";
-        ctx.fillRect(positionX, GROUND_Y, PLAYER_W, PLAYER_H);
-    }, [positionX]);
+            // Gubben
+            ctx.save(); // Sparar canvas tillstånd innan flippen
+            if (isFacingRight) {
+                ctx.translate(positionX + PLAYER_W, GROUND_Y)
+                ctx.scale(-1,1)
+                ctx.drawImage(pika, 0, 0, PLAYER_W, PLAYER_H);
+            } else {
+                ctx.drawImage(pika, positionX, GROUND_Y, PLAYER_W, PLAYER_H)
+            }
+            ctx.restore(); // Återställer canvas tillstånd efter ritningen
+        }
+
+        if (pika.complete) {
+            draw();
+        } else {
+            pika.onload = () => {
+                draw();
+            };
+        }
+
+
+    }, [positionX, isFacingRight]);
 
     // Lyssna på tangentbordet
     useEffect(() => {
@@ -55,6 +82,7 @@ export function GamePage() {
                 setPositionX((position) =>
                     Math.max(MIN_X, position - PLAYER_SPEED)
                 );
+                setIsFacingRight(false)
             }
 
             if (e.key === "ArrowRight") {
@@ -62,6 +90,7 @@ export function GamePage() {
                 setPositionX((position) =>
                     Math.min(MAX_X, position + PLAYER_SPEED)
                 );
+                setIsFacingRight(true)
             }
         };
 

@@ -31,3 +31,9 @@ export function showLeaderBoard() {
         destination: "/app/game/leaderboard",
     })
 }
+
+export function startGame() {
+    stompClient.publish({
+        destination: "/app/game/start"
+    })
+}
