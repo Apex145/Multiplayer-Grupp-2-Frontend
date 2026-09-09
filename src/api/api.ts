@@ -20,6 +20,17 @@ export async function login(playerName: string): Promise<Player> {
     return response.json()
 }
 
+export async function leaveLobby(player: string | null): Promise<void> {
+    const response = await fetch('http://localhost:8080/api/auth/player/logout', {
+        method: 'POST',
+        body: player
+    })
+    if (!response.ok) {
+        throw new Error('Failed to leave the lobby')
+    }
+}
+
+
 export function showAllPlayers() {
     stompClient.publish({
         destination: '/app/game/players'

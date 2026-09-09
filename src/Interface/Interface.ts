@@ -8,3 +8,13 @@ export interface LeaderBoardItem {
     player: string,
     gamesWon: number
 };
+
+export interface PlayerGameStatus {
+    playerId : string
+    playerName:  string
+    slot: number
+    x: number
+    y: number
+    alive: boolean 
+    sessionId: string
+}

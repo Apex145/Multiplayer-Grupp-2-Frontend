@@ -20,17 +20,29 @@ const MIN_X = LEFT_WALL + WALL_THICKNESS;
 const MAX_X = RIGHT_WALL - PLAYER_W;
 const GROUND_Y = CANVAS_H - PLAYER_H;
 
-const pika = new Image()
-pika.src = 'src/assets/pikachu.png'
+const playerImg = new Image()
+playerImg.src = 'src/assets/pikachu.png'
+
+/*     switch (player.id) {
+    case 1 : playerImg.src = 'src/assets/pikachu.png'
+    break
+    case 2 : playerImg.src = 'src/assets/bulbasaur.png'
+    break
+    case 3 : playerImg.src = 'src/assets/charmander.png'
+    break
+    case 4 : playerImg.src = 'src/assets/squirtle.png'
+}
+ */
 
 export function GamePage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isFacingRight, setIsFacingRight] = useState(false)
 
-
     const [positionX, setPositionX] = useState(() =>
         Math.min(MAX_X, Math.max(MIN_X, CANVAS_W / 2 - PLAYER_W / 2))
     );
+
+
 
     // Rita spelet 
     useEffect(() => {
@@ -56,17 +68,17 @@ export function GamePage() {
             if (isFacingRight) {
                 ctx.translate(positionX + PLAYER_W, GROUND_Y)
                 ctx.scale(-1,1)
-                ctx.drawImage(pika, 0, 0, PLAYER_W, PLAYER_H);
+                ctx.drawImage(playerImg, 0, 0, PLAYER_W, PLAYER_H);
             } else {
-                ctx.drawImage(pika, positionX, GROUND_Y, PLAYER_W, PLAYER_H)
+                ctx.drawImage(playerImg, positionX, GROUND_Y, PLAYER_W, PLAYER_H)
             }
             ctx.restore(); // Återställer canvas tillstånd efter ritningen
         }
 
-        if (pika.complete) {
+        if (playerImg.complete) {
             draw();
         } else {
-            pika.onload = () => {
+            playerImg.onload = () => {
                 draw();
             };
         }
