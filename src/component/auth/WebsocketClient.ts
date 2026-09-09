@@ -10,6 +10,10 @@ export const connected = new Promise<void>((resolve) => {
     stompClient.onConnect = () => resolve()
 })
 
+/* export const connectedBoolean = new Promise<void>((resolve) => {
+    stompClient.onConnect = () => resolve()
+})
+ */
 stompClient.activate();
 
 

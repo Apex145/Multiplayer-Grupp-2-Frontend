@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { clearPlayerName, getPlayerName, getGamesWon } from "./auth/session";
+import { clearPlayerName } from "./auth/session";
 import "./LobbyPage.css";
-import type { LeaderBoardItem, Player } from "../Interface/Interface";
+import type { LeaderBoardItem } from "../Interface/Interface";
 import { connected, stompClient } from "./auth/WebsocketClient";
-import { showAllPlayers, showLeaderBoard } from "../api/api";
+import { showAllPlayers, showLeaderBoard, startGame } from "../api/api";
 import type { StompSubscription } from "@stomp/stompjs";
 import { useNavigate } from "react-router-dom";
 
@@ -17,11 +17,13 @@ export const LobbyPage = () => {
 
     const [leaderboard, setLeaderBoard] = useState<LeaderBoardItem[]>([]);
     const [playersInLobby, setPlayersInLobby] = useState<string[]>([]);
-
-
+    const [isGameStarted, setIsGameStarted] = useState<boolean>(false)
+    
+    
     useEffect(() => {
         let leaderboardSubscription: StompSubscription | undefined
         let playerSubscription: StompSubscription | undefined
+        let startGameSubscription: StompSubscription | undefined
 
         connected.then(() => {
 
@@ -38,15 +40,38 @@ export const LobbyPage = () => {
             });
             showLeaderBoard();
 
+
+
+        connected.then(() => {
+            startGameSubscription = stompClient.subscribe("/pokemon/start", (msg) => {
+                console.log("game started")
+                if (msg.body == "true") {
+                    console.log("blä")
+                    setIsGameStarted(true)
+                    navigate('/pokemon/game')
+                }
+            })
         })
 
 
+
+        })
+
+        if (isGameStarted) {
+            navigate("/pokemon/game")
+        } 
+
         return () => {
             playerSubscription?.unsubscribe()
-            leaderboardSubscription?.unsubscribe()
+            leaderboardSubscription?.unsubscribe()            
+            startGameSubscription?.unsubscribe()
         }
-    }, []);
+    }, [navigate]);
 
+
+    function handleStartGame() {
+        startGame()
+    }
 
 
     return (
@@ -71,7 +96,7 @@ export const LobbyPage = () => {
                         <button type="submit">Leave lobby!</button>
                     </form>
 
-                    <button onClick={() => navigate("/pokemon/game")}>Start Game</button>
+                    <button onClick={handleStartGame}>Start Game</button>
 
 
                 </div>
