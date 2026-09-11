@@ -1,6 +1,17 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
+import type { StompSubscription } from "@stomp/stompjs";
+import { connected, stompClient } from "../component/auth/WebsocketClient";
+import { sendMove } from "../api/api";
+import type { FallingBlock, PlayerGameStatus } from "../Interface/Interface";
 
-// --- Spelets mått. Ändra här, resten räknas ut automatiskt. ---
+import pikachu from "../assets/pikachu.png";
+import bulbasaur from "../assets/bulbasaur.png";
+import charmander from "../assets/charmander.png";
+import squirtle from "../assets/squirtle.png";
+import pokeball from "../assets/pokeball.png";
+import { Blocks } from "./Blocks";
+
+// --- Spelets mått. Ändra här. ---
 const CANVAS_W = 1000;
 const CANVAS_H = 800;
 
@@ -10,7 +21,11 @@ const RIGHT_WALL = 950;
 
 const PLAYER_W = 150;
 const PLAYER_H = 180;
-const PLAYER_SPEED = 40;
+
+// movement directions
+const LEFT = "left"
+const RIGHT = "right"
+const NONE = "none"
 
 /* ===================== */
 /* Jädrar */
@@ -20,27 +35,57 @@ const MIN_X = LEFT_WALL + WALL_THICKNESS;
 const MAX_X = RIGHT_WALL - PLAYER_W;
 const GROUND_Y = CANVAS_H - PLAYER_H;
 
-const pika = new Image()
-pika.src = 'src/assets/pikachu.png'
+function loadImage(src: string) {
+    const img = new Image();
+    img.src = src;
+    return img;
+}
+
+// Picture you get is based on your player slot
+const SPRITE_BY_SLOT: Record<number, HTMLImageElement> = {
+    1: loadImage(pikachu),
+    2: loadImage(squirtle),
+    3: loadImage(charmander),
+    4: loadImage(bulbasaur),
+};
+
+const POKEBALL_SPRITE: HTMLImageElement = loadImage(pokeball)
+
+// skapar ett promise som väntar åp att alla bilder ska laddas
+const spritesReady = Promise.all(
+    Object.values(SPRITE_BY_SLOT).map(
+        (img) =>
+            new Promise<void>((resolve) => {
+                if (img.complete) return resolve();
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+            })
+    )
+);
+
+// Server sends 0-100. 0 = left wall, 100 = right wall.
+const percentToPixels = (x: number) => MIN_X + (x / 100) * (MAX_X - MIN_X);
 
 export function GamePage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isFacingRight, setIsFacingRight] = useState(false)
+    const playersRef = useRef<PlayerGameStatus[]>([]);
+    const blocksRef = useRef<FallingBlock[]>([]);
 
 
-    const [positionX, setPositionX] = useState(() =>
-        Math.min(MAX_X, Math.max(MIN_X, CANVAS_W / 2 - PLAYER_W / 2))
-    );
-
-    // Rita spelet 
+    // Ta emot spelarna från servern och rita dem
     useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+        let cancelled = false;
+        let subscription: StompSubscription | undefined;
+        let animationFrame = 0;
 
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+        // Åt vilket håll varje gubbe tittar, uträknat av hur x ändras mellan två uppdateringar
+        const facingRight = new Map<number, boolean>();
+        const previousX = new Map<number, number>();
 
         const draw = () => {
+            const ctx = canvasRef.current?.getContext("2d");
+            if (!ctx) return;
+
             // Bakgrund
             ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
             ctx.fillStyle = "gray";
@@ -51,54 +96,104 @@ export function GamePage() {
             ctx.fillRect(LEFT_WALL, 0, WALL_THICKNESS, CANVAS_H);
             ctx.fillRect(RIGHT_WALL, 0, WALL_THICKNESS, CANVAS_H);
 
-            // Gubben
-            ctx.save(); // Sparar canvas tillstånd innan flippen
-            if (isFacingRight) {
-                ctx.translate(positionX + PLAYER_W, GROUND_Y)
-                ctx.scale(-1,1)
-                ctx.drawImage(pika, 0, 0, PLAYER_W, PLAYER_H);
-            } else {
-                ctx.drawImage(pika, positionX, GROUND_Y, PLAYER_W, PLAYER_H)
-            }
-            ctx.restore(); // Återställer canvas tillstånd efter ritningen
-        }
+            // Blocks
+            for (const block of blocksRef.current) {
+                ctx.fillStyle = "red";
 
-        if (pika.complete) {
-            draw();
-        } else {
-            pika.onload = () => {
-                draw();
-            };
-        }
-
-
-    }, [positionX, isFacingRight]);
-
-    // Lyssna på tangentbordet
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "ArrowLeft") {
-                e.preventDefault();
-                setPositionX((position) =>
-                    Math.max(MIN_X, position - PLAYER_SPEED)
-                );
-                setIsFacingRight(false)
+                /* ctx.fillRect(percentToPixels(block.x), percentToPixels(block.y), 30,30); */
+                ctx.drawImage(POKEBALL_SPRITE, percentToPixels(block.x), percentToPixels(block.y), 30,30)
             }
 
-            if (e.key === "ArrowRight") {
-                e.preventDefault();
-                setPositionX((position) =>
-                    Math.min(MAX_X, position + PLAYER_SPEED)
-                );
-                setIsFacingRight(true)
+            // Alla gubbar
+            for (const player of playersRef.current) {
+                const sprite = SPRITE_BY_SLOT[player.slot] ?? SPRITE_BY_SLOT[1]; 
+                const x = percentToPixels(player.x);
+
+                ctx.save(); // Sparar canvas tillstånd innan flippen
+                if (facingRight.get(player.slot)) {
+                    ctx.translate(x + PLAYER_W, GROUND_Y);
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(sprite, 0, 0, PLAYER_W, PLAYER_H);
+                } else {
+                    ctx.drawImage(sprite, x, GROUND_Y, PLAYER_W, PLAYER_H);
+                }
+                ctx.restore(); // Återställer canvas tillstånd efter ritningen
+
+                ctx.fillStyle = "white";
+                ctx.font = "20px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(player.playerName, x + PLAYER_W / 2, GROUND_Y - 10);
             }
         };
 
-        document.addEventListener("keydown", handleKeyDown);
+        // sker inte förrän spritesready och connected har laddats
+        Promise.all([spritesReady, connected]).then(() => {
+            if (cancelled) return;
 
-        // Ta bort event listener när komponenten försvinner
+            subscription = stompClient.subscribe("/pokemon/state", (msg) => {
+                const players: PlayerGameStatus[] = JSON.parse(msg.body);
+
+                for (const player of players) {
+                    const previous = previousX.get(player.slot);
+                    if (previous !== undefined) {
+                        if (player.x > previous) facingRight.set(player.slot, true);
+                        else if (player.x < previous) facingRight.set(player.slot, false);
+                    }
+                    previousX.set(player.slot, player.x);
+                }
+
+                playersRef.current = players;
+            });
+
+            const loop = () => {
+                draw();
+                animationFrame = requestAnimationFrame(loop);
+            };
+            animationFrame = requestAnimationFrame(loop);
+        });
+
+        return () => {
+            cancelled = true;
+            subscription?.unsubscribe();
+            cancelAnimationFrame(animationFrame);
+        };
+    }, []);
+
+
+    // Lyssna på tangentbordet och skicka riktningen till servern
+    useEffect(() => {
+        const held = { left: false, right: false };
+        let direction : string = ""
+        const publishDirection = () => {
+            if (held.right) { direction = RIGHT}
+            else if (held.left) {direction = LEFT}
+            else (direction = NONE)
+            sendMove(direction)
+        };
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.repeat) return;
+            if (e.key === "ArrowLeft") held.left = true;
+            else if (e.key === "ArrowRight") held.right = true;
+            else return;
+            e.preventDefault();
+            publishDirection();
+        };
+
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === "ArrowLeft") held.left = false;
+            else if (e.key === "ArrowRight") held.right = false;
+            else return;
+            publishDirection();
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        document.addEventListener("keyup", handleKeyUp);
+
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
+            document.removeEventListener("keyup", handleKeyUp);
+            sendMove("none"); 
         };
     }, []);
 
@@ -106,6 +201,8 @@ export function GamePage() {
         <>
 
             <p style={{ display: "flex", position: "absolute", top: "90%" }}>Flytta gubben med ← och →</p>
+
+            <Blocks blocksUpdate={(b) => [blocksRef.current = b ]}/>
 
             <div>
                 <canvas
