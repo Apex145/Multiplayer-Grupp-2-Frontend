@@ -2,12 +2,14 @@ import { useRef, useEffect } from "react";
 import type { StompSubscription } from "@stomp/stompjs";
 import { connected, stompClient } from "../component/auth/WebsocketClient";
 import { sendMove } from "../api/api";
-import type { PlayerGameStatus } from "../Interface/Interface";
+import type { FallingBlock, PlayerGameStatus } from "../Interface/Interface";
 
 import pikachu from "../assets/pikachu.png";
 import bulbasaur from "../assets/bulbasaur.png";
 import charmander from "../assets/charmander.png";
 import squirtle from "../assets/squirtle.png";
+import pokeball from "../assets/pokeball.png";
+import { Blocks } from "./Blocks";
 
 // --- Spelets mått. Ändra här. ---
 const CANVAS_W = 1000;
@@ -47,6 +49,8 @@ const SPRITE_BY_SLOT: Record<number, HTMLImageElement> = {
     4: loadImage(bulbasaur),
 };
 
+const POKEBALL_SPRITE: HTMLImageElement = loadImage(pokeball)
+
 // skapar ett promise som väntar åp att alla bilder ska laddas
 const spritesReady = Promise.all(
     Object.values(SPRITE_BY_SLOT).map(
@@ -64,8 +68,9 @@ const percentToPixels = (x: number) => MIN_X + (x / 100) * (MAX_X - MIN_X);
 
 export function GamePage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-
     const playersRef = useRef<PlayerGameStatus[]>([]);
+    const blocksRef = useRef<FallingBlock[]>([]);
+
 
     // Ta emot spelarna från servern och rita dem
     useEffect(() => {
@@ -90,6 +95,14 @@ export function GamePage() {
             ctx.fillStyle = "black";
             ctx.fillRect(LEFT_WALL, 0, WALL_THICKNESS, CANVAS_H);
             ctx.fillRect(RIGHT_WALL, 0, WALL_THICKNESS, CANVAS_H);
+
+            // Blocks
+            for (const block of blocksRef.current) {
+                ctx.fillStyle = "red";
+
+                /* ctx.fillRect(percentToPixels(block.x), percentToPixels(block.y), 30,30); */
+                ctx.drawImage(POKEBALL_SPRITE, percentToPixels(block.x), percentToPixels(block.y), 30,30)
+            }
 
             // Alla gubbar
             for (const player of playersRef.current) {
@@ -188,6 +201,8 @@ export function GamePage() {
         <>
 
             <p style={{ display: "flex", position: "absolute", top: "90%" }}>Flytta gubben med ← och →</p>
+
+            <Blocks blocksUpdate={(b) => [blocksRef.current = b ]}/>
 
             <div>
                 <canvas

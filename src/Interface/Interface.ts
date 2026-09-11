@@ -18,3 +18,10 @@ export interface PlayerGameStatus {
     alive: boolean
     sessionId: string | null
 }
+
+export interface FallingBlock {
+    id: string,
+    x: number,
+    y: number,
+    speed: number
+}
