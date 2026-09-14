@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import type { StompSubscription } from "@stomp/stompjs";
 import { connected, stompClient } from "../component/auth/WebsocketClient";
 import { sendMove } from "../api/api";
@@ -65,11 +65,16 @@ const spritesReady = Promise.all(
 
 // Server sends 0-100. 0 = left wall, 100 = right wall.
 const percentToPixels = (x: number) => MIN_X + (x / 100) * (MAX_X - MIN_X);
+const yToPixels = (y: number) => (y / 100) * CANVAS_H;
 
 export function GamePage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const playersRef = useRef<PlayerGameStatus[]>([]);
     const blocksRef = useRef<FallingBlock[]>([]);
+
+    const updateBlocks = useCallback((b: FallingBlock[]) => {
+        blocksRef.current = b;
+    }, []);
 
 
     // Ta emot spelarna från servern och rita dem
@@ -101,11 +106,12 @@ export function GamePage() {
                 ctx.fillStyle = "red";
 
                 /* ctx.fillRect(percentToPixels(block.x), percentToPixels(block.y), 30,30); */
-                ctx.drawImage(POKEBALL_SPRITE, percentToPixels(block.x), percentToPixels(block.y), 30,30)
+                ctx.drawImage(POKEBALL_SPRITE, percentToPixels(block.x), yToPixels(block.y), 30,30)
             }
 
             // Alla gubbar
             for (const player of playersRef.current) {
+                if(!player.alive) continue;
                 const sprite = SPRITE_BY_SLOT[player.slot] ?? SPRITE_BY_SLOT[1]; 
                 const x = percentToPixels(player.x);
 
@@ -202,7 +208,7 @@ export function GamePage() {
 
             <p style={{ display: "flex", position: "absolute", top: "90%" }}>Flytta gubben med ← och →</p>
 
-            <Blocks blocksUpdate={(b) => [blocksRef.current = b ]}/>
+            <Blocks blocksUpdate={updateBlocks}/>
 
             <div>
                 <canvas

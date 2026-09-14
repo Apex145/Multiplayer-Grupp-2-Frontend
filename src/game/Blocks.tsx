@@ -9,8 +9,8 @@ interface BlocksProps {
 
 export function Blocks({blocksUpdate}: BlocksProps) {
 
-    const [spawnBlocks, setSpawnBlocks] = useState<FallingBlock>();
-    const [activeBlocks, setActiveBlocks] = useState<FallingBlock[]>([]);
+    const [, setSpawnBlocks] = useState<FallingBlock>();
+    const [, setActiveBlocks] = useState<FallingBlock[]>([]);
 
 
     useEffect(() => {
@@ -37,14 +37,14 @@ export function Blocks({blocksUpdate}: BlocksProps) {
         }
     }, [blocksUpdate])
 
-    return(
-        <div>
-            {activeBlocks.map(block => (
-                <div key={block.id} className="block" style={{ position: 'absolute', left: block.x, top: block.y }}></div>
-            ))}
-        </div>
-    )
+    // return(
+    //     <div>
+    //         {activeBlocks.map(block => (
+    //             <div key={block.id} className="block" style={{ position: 'absolute', left: block.x, top: block.y }}></div>
+    //         ))}
+    //     </div>
+    // )
 
-
+    return null;
 }
 
