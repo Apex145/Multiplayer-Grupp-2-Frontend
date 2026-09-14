@@ -1,11 +1,12 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { StompSubscription } from "@stomp/stompjs";
 import { connected, stompClient } from "../component/auth/WebsocketClient";
 import { sendMove } from "../api/api";
 import type { FallingBlock, PlayerGameStatus } from "../Interface/Interface";
 
 import pikachu from "../assets/pikachu.png";
-import bulbasaur from "../assets/bulbasaur.png";
+import bulbasaur from "../assets/bulbasaur1.png";
 import charmander from "../assets/charmander.png";
 import squirtle from "../assets/squirtle.png";
 import pokeball from "../assets/pokeball.png";
@@ -19,13 +20,13 @@ const WALL_THICKNESS = 20;
 const LEFT_WALL = 35;
 const RIGHT_WALL = 950;
 
-const PLAYER_W = 150;
-const PLAYER_H = 180;
+const PLAYER_W = 80;
+const PLAYER_H = 110;
 
 // movement directions
-const LEFT = "left"
-const RIGHT = "right"
-const NONE = "none"
+const LEFT = "left";
+const RIGHT = "right";
+const NONE = "none";
 
 /* ===================== */
 /* Jädrar */
@@ -49,9 +50,9 @@ const SPRITE_BY_SLOT: Record<number, HTMLImageElement> = {
     4: loadImage(bulbasaur),
 };
 
-const POKEBALL_SPRITE: HTMLImageElement = loadImage(pokeball)
+const POKEBALL_SPRITE: HTMLImageElement = loadImage(pokeball);
 
-// skapar ett promise som väntar åp att alla bilder ska laddas
+// skapar ett promise som väntar på att alla bilder ska laddas
 const spritesReady = Promise.all(
     Object.values(SPRITE_BY_SLOT).map(
         (img) =>
@@ -64,7 +65,9 @@ const spritesReady = Promise.all(
 );
 
 // Server sends 0-100. 0 = left wall, 100 = right wall.
-const percentToPixels = (x: number) => MIN_X + (x / 100) * (MAX_X - MIN_X);
+const percentToPixels = (x: number) =>
+    MIN_X + (x / 100) * (MAX_X - MIN_X);
+
 const yToPixels = (y: number) => (y / 100) * CANVAS_H;
 
 export function GamePage() {
@@ -72,18 +75,24 @@ export function GamePage() {
     const playersRef = useRef<PlayerGameStatus[]>([]);
     const blocksRef = useRef<FallingBlock[]>([]);
 
+    const [winner, setWinner] = useState<string | null>(null);
+    const navigate = useNavigate();
+
     const updateBlocks = useCallback((b: FallingBlock[]) => {
         blocksRef.current = b;
     }, []);
 
-
     // Ta emot spelarna från servern och rita dem
     useEffect(() => {
         let cancelled = false;
+
         let subscription: StompSubscription | undefined;
+        let gameOverSubscription: StompSubscription | undefined;
+
         let animationFrame = 0;
 
-        // Åt vilket håll varje gubbe tittar, uträknat av hur x ändras mellan två uppdateringar
+        // Åt vilket håll varje gubbe tittar,
+        // uträknat av hur x ändras mellan två uppdateringar
         const facingRight = new Map<number, boolean>();
         const previousX = new Map<number, number>();
 
@@ -105,91 +114,171 @@ export function GamePage() {
             for (const block of blocksRef.current) {
                 ctx.fillStyle = "red";
 
-                /* ctx.fillRect(percentToPixels(block.x), percentToPixels(block.y), 30,30); */
-                ctx.drawImage(POKEBALL_SPRITE, percentToPixels(block.x), yToPixels(block.y), 30,30)
+                ctx.drawImage(
+                    POKEBALL_SPRITE,
+                    percentToPixels(block.x),
+                    yToPixels(block.y),
+                    30,
+                    30
+                );
             }
 
             // Alla gubbar
             for (const player of playersRef.current) {
-                if(!player.alive) continue;
-                const sprite = SPRITE_BY_SLOT[player.slot] ?? SPRITE_BY_SLOT[1]; 
+                if (!player.alive) continue;
+
+                const sprite =
+                    SPRITE_BY_SLOT[player.slot] ?? SPRITE_BY_SLOT[1];
+
                 const x = percentToPixels(player.x);
 
-                ctx.save(); // Sparar canvas tillstånd innan flippen
+                ctx.save();
+
+                // Flippar gubben om den går åt höger
                 if (facingRight.get(player.slot)) {
                     ctx.translate(x + PLAYER_W, GROUND_Y);
                     ctx.scale(-1, 1);
-                    ctx.drawImage(sprite, 0, 0, PLAYER_W, PLAYER_H);
+                    ctx.drawImage(
+                        sprite,
+                        0,
+                        0,
+                        PLAYER_W,
+                        PLAYER_H
+                    );
                 } else {
-                    ctx.drawImage(sprite, x, GROUND_Y, PLAYER_W, PLAYER_H);
+                    ctx.drawImage(
+                        sprite,
+                        x,
+                        GROUND_Y,
+                        PLAYER_W,
+                        PLAYER_H
+                    );
                 }
-                ctx.restore(); // Återställer canvas tillstånd efter ritningen
+
+                ctx.restore();
 
                 ctx.fillStyle = "white";
                 ctx.font = "20px sans-serif";
                 ctx.textAlign = "center";
-                ctx.fillText(player.playerName, x + PLAYER_W / 2, GROUND_Y - 10);
+                ctx.fillText(
+                    player.playerName,
+                    x + PLAYER_W / 2,
+                    GROUND_Y - 10
+                );
             }
         };
 
-        // sker inte förrän spritesready och connected har laddats
+        // Sker inte förrän spritesReady och connected har laddats
         Promise.all([spritesReady, connected]).then(() => {
             if (cancelled) return;
 
-            subscription = stompClient.subscribe("/pokemon/state", (msg) => {
-                const players: PlayerGameStatus[] = JSON.parse(msg.body);
+            // Spelarnas position
+            subscription = stompClient.subscribe(
+                "/pokemon/state",
+                (msg) => {
+                    const players: PlayerGameStatus[] =
+                        JSON.parse(msg.body);
 
-                for (const player of players) {
-                    const previous = previousX.get(player.slot);
-                    if (previous !== undefined) {
-                        if (player.x > previous) facingRight.set(player.slot, true);
-                        else if (player.x < previous) facingRight.set(player.slot, false);
+                    for (const player of players) {
+                        const previous = previousX.get(player.slot);
+
+                        if (previous !== undefined) {
+                            if (player.x > previous) {
+                                facingRight.set(player.slot, true);
+                            } else if (player.x < previous) {
+                                facingRight.set(player.slot, false);
+                            }
+                        }
+
+                        previousX.set(player.slot, player.x);
                     }
-                    previousX.set(player.slot, player.x);
-                }
 
-                playersRef.current = players;
-            });
+                    playersRef.current = players;
+                }
+            );
+
+            // Game over
+            gameOverSubscription = stompClient.subscribe(
+                "/pokemon/gameover",
+                (msg) => {
+                    console.log("Game over:", msg.body);
+
+                    // vinnarens namn eller "lika"
+                    setWinner(msg.body);
+
+                    // spelaren är fast när spelet är över
+                    sendMove(NONE);
+                }
+            );
 
             const loop = () => {
                 draw();
                 animationFrame = requestAnimationFrame(loop);
             };
+
             animationFrame = requestAnimationFrame(loop);
         });
 
         return () => {
             cancelled = true;
+
             subscription?.unsubscribe();
+            gameOverSubscription?.unsubscribe();
+
             cancelAnimationFrame(animationFrame);
         };
     }, []);
 
-
     // Lyssna på tangentbordet och skicka riktningen till servern
     useEffect(() => {
-        const held = { left: false, right: false };
-        let direction : string = ""
+        const held = {
+            left: false,
+            right: false,
+        };
+
+        let direction = "";
+
         const publishDirection = () => {
-            if (held.right) { direction = RIGHT}
-            else if (held.left) {direction = LEFT}
-            else (direction = NONE)
-            sendMove(direction)
+            if (winner !== null) {
+                sendMove(NONE);
+                return;
+            }
+
+            if (held.right) {
+                direction = RIGHT;
+            } else if (held.left) {
+                direction = LEFT;
+            } else {
+                direction = NONE;
+            }
+
+            sendMove(direction);
         };
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.repeat) return;
-            if (e.key === "ArrowLeft") held.left = true;
-            else if (e.key === "ArrowRight") held.right = true;
-            else return;
+
+            if (e.key === "ArrowLeft") {
+                held.left = true;
+            } else if (e.key === "ArrowRight") {
+                held.right = true;
+            } else {
+                return;
+            }
+
             e.preventDefault();
             publishDirection();
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.key === "ArrowLeft") held.left = false;
-            else if (e.key === "ArrowRight") held.right = false;
-            else return;
+            if (e.key === "ArrowLeft") {
+                held.left = false;
+            } else if (e.key === "ArrowRight") {
+                held.right = false;
+            } else {
+                return;
+            }
+
             publishDirection();
         };
 
@@ -199,16 +288,58 @@ export function GamePage() {
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
             document.removeEventListener("keyup", handleKeyUp);
-            sendMove("none"); 
+
+            sendMove(NONE);
         };
-    }, []);
+    }, [winner]);
 
     return (
         <>
+            {/* GAME OVER OVERLAY */}
+            {winner && (
+                <div
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(0, 0, 0, 0.7)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 1000,
+                        color: "white",
+                    }}
+                >
+                    <h1>
+                        {winner === "DRAW"
+                            ? "Oavgjort!"
+                            : `${winner} vann!`}
+                    </h1>
 
-            <p style={{ display: "flex", position: "absolute", top: "90%" }}>Flytta gubben med ← och →</p>
+                    <button
+                        onClick={() => navigate("/lobbypage")}
+                        style={{
+                            padding: "12px 24px",
+                            fontSize: "18px",
+                            cursor: "pointer",
+                        }}
+                    >
+                        Tillbaka till lobbyn
+                    </button>
+                </div>
+            )}
 
-            <Blocks blocksUpdate={updateBlocks}/>
+            <p
+                style={{
+                    display: "flex",
+                    position: "absolute",
+                    top: "90%",
+                }}
+            >
+                Flytta gubben med ← och →
+            </p>
+
+            <Blocks blocksUpdate={updateBlocks} />
 
             <div>
                 <canvas
@@ -224,12 +355,10 @@ export function GamePage() {
                         position: "absolute",
                         left: "50%",
                         transform: "translateX(-50%)",
-                        top: "5%"
+                        top: "5%",
                     }}
                 />
-
             </div>
         </>
-
     );
 }
