@@ -10,7 +10,7 @@ interface BlocksProps {
 export function Blocks({blocksUpdate}: BlocksProps) {
 
     const [, setSpawnBlocks] = useState<FallingBlock>();
-    const [activeBlocks, setActiveBlocks] = useState<FallingBlock[]>([]);
+    const [, setActiveBlocks] = useState<FallingBlock[]>([]);
 
 
     useEffect(() => {

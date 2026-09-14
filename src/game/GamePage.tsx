@@ -111,7 +111,7 @@ export function GamePage() {
 
             // Alla gubbar
             for (const player of playersRef.current) {
-                // if(!player.alive) continue;
+                if(!player.alive) continue;
                 const sprite = SPRITE_BY_SLOT[player.slot] ?? SPRITE_BY_SLOT[1]; 
                 const x = percentToPixels(player.x);
 
