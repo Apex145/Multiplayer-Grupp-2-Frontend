@@ -1,8 +1,9 @@
 import { stompClient, connected } from "../component/auth/WebsocketClient"
 import type { Player } from "../Interface/Interface"
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 export async function login(playerName: string): Promise<Player> {
-    const response = await fetch('http://localhost:8080/api/auth/player/login', {
+    const response = await fetch(`${API_URL}/api/auth/player/login`, {
         method: 'POST',
         body: playerName
     })
