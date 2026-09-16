@@ -1,80 +1,67 @@
+# PokéDodge Multiplayer
+
+A real-time multiplayer Pokémon-inspired dodge game built with a **React + TypeScript** frontend and **Spring Boot** backend.
+
+## 🎮 Play the Game
+https://pokedodge-tuhqk.ondigitalocean.app
+
+
+## Backend
 https://github.com/Apex145/Multiplayer-Grupp-2-Backend
 
-# React + TypeScript + Vite
+## Game Overview
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+PokéDodge is a party-style multiplayer game where all players play at the same time. Each player controls a Pokémon character in a shared game arena. Player movements are synchronized instantly between all connected clients through WebSockets.
+Players must dodge incoming attacks, navigate the arena, and outlast their opponents to become the last player standing.
 
-Currently, two official plugins are available:
+### Features:
+- Real-time multiplayer gameplay
+- Up to 4 players in one lobby
+- Live player movement
+- Lobbypage before connection to game
+- Pokémon-inspired gameplay
+- Game stats updates instantly
+- Top 5 leaderboard
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Installation (Run Locally)
+- Prerequisites
+- Node.js 20+
+- Java 21
+- Maven
+- MongoDB
 
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+### **Backend**
+- git clone <backend-repository>
+- cd backend
+- setup your .env file like the one below
+```ruby
+MONGODB_URI=mongodb://localhost:27017/pokedodge
 ```
+- ./mvnw spring-boot:run
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+### Backend runs on:
+- http://localhost:8080
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### **Frontend**
+- git clone <frontend-repository>
+- cd frontend
+- npm install
+- npm run dev
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 
-```
+### Frontend runs on:
+- http://localhost:5173
+
+## Known bugs - In progress  ##
+
+- Solo gameplay is not supported yet
+- After a match ends, all players must return to the lobby before a new game can start
+- Win scoring is currently inaccurate and may occasionally award significantly more points than intended for a single win
+
+
+## Authors
+- https://github.com/Apex145
+- https://github.com/Holyfivr
+- https://github.com/Twitty0502
+- https://github.com/ninos11
+  
